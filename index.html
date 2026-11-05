@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Creador de rúbricas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Herramienta de trabajo: barra de pasos arriba, editor por ejes, matriz para corregir con clic */
+  --bg:#f5f7f4; --surface:#ffffff; --ink:#1d2a22; --muted:#5d6b62; --line:#d5ddd6;
+  --accent:#1f7a4d; --accent-soft:#e3f1e8; --pick:#c9e8d4; --warn:#a14a1b;
+  --display:"IBM Plex Serif", Georgia, serif; --body:"IBM Plex Sans", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121815; --surface:#1a221e; --ink:#e6eee8; --muted:#9aaba0; --line:#304038;
+  --accent:#5cc28c; --accent-soft:#1f3328; --pick:#24543a; --warn:#e39a6f; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#121815; --surface:#1a221e; --ink:#e6eee8; --muted:#9aaba0; --line:#304038;
+  --accent:#5cc28c; --accent-soft:#1f3328; --pick:#24543a; --warn:#e39a6f; color-scheme:dark;}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body)}
+header{padding:20px 16px 0;max-width:1200px;margin:0 auto}
+h1{font:600 26px/1.2 var(--display);margin:0 0 4px;text-wrap:balance}
+.sub{color:var(--muted);margin:0 0 14px;max-width:70ch}
+nav{display:flex;gap:4px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+nav button{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;font:500 15px var(--body);color:var(--muted);cursor:pointer}
+nav button[aria-selected="true"]{color:var(--accent);border-color:var(--accent)}
+main{max-width:1200px;margin:0 auto;padding:16px}
+section[hidden]{display:none}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:16px}
+.panel h2{font:600 18px var(--display);margin:0 0 10px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:4px}
+input,textarea,select{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px}
+textarea{resize:vertical;min-height:64px}
+input:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.btn{font:500 14px var(--body);border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:6px;padding:7px 12px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.danger{border-color:var(--warn);background:transparent;color:var(--warn)}
+.btn.small{padding:3px 8px;font-size:13px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.levels{display:flex;gap:8px;flex-wrap:wrap}
+.lvl{display:flex;gap:6px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px}
+.lvl input.n{width:150px}.lvl input.p{width:64px;text-align:right;font-variant-numeric:tabular-nums}
+table.rb td.dimc .obj{display:block;font-weight:400;font-size:13px;color:var(--muted);margin-top:2px}
+.dimobj{font-size:13px;margin-top:4px}
+.eje-head{display:flex;gap:8px;align-items:end;margin-bottom:10px;flex-wrap:wrap}
+.eje-head .f{flex:1;min-width:220px}
+.scroll{overflow-x:auto}
+table.ed{border-collapse:collapse;width:100%;min-width:760px}
+table.ed th,table.ed td{border:1px solid var(--line);padding:6px;vertical-align:top}
+table.ed th{background:var(--accent-soft);font-size:13px;text-align:left}
+table.ed td.dim{width:220px}
+table.ed td.peso{width:80px}
+.hint{font-size:13px;color:var(--muted)}
+.total-peso{font-variant-numeric:tabular-nums;font-weight:600}
+.total-peso.bad{color:var(--warn)}
+/* corrección */
+.sumbar{position:sticky;top:0;z-index:2;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+.stat b{font:600 22px var(--display);font-variant-numeric:tabular-nums;display:block}
+.stat span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+table.rb{border-collapse:collapse;width:100%;min-width:760px;background:var(--surface)}
+table.rb th,table.rb td{border:1px solid var(--line);padding:8px;vertical-align:top;text-align:left}
+table.rb thead th{background:var(--accent-soft);font-size:13px}
+table.rb tr.ejerow td{background:var(--accent);color:#fff;font-weight:600}
+table.rb td.dimc{width:210px;font-weight:600}
+table.rb td.dimc small{display:block;font-weight:400;color:var(--muted)}
+table.rb td.cell{cursor:pointer;font-size:14px}
+table.rb td.cell:hover{background:var(--accent-soft)}
+table.rb td.cell.sel{background:var(--pick);box-shadow:inset 0 0 0 2px var(--accent)}
+table.rb td.cell .pts,table.rb td.na .pts{display:block;font-size:12px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
+table.rb input.com{font-size:13px;margin-top:6px}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+@media (prefers-reduced-motion: reduce){.toast{transition:none}}
+.guide p,.guide li{max-width:70ch}
+.guide dt{font-weight:600;margin-top:10px}
+.guide dd{margin:2px 0 0 0;max-width:70ch}
+.ref{font-size:13px;color:var(--muted)}
+.cellpts{display:flex;align-items:center;gap:6px;margin-top:4px;font-size:12px;color:var(--muted)}
+.cellpts input{width:64px;text-align:right;font-variant-numeric:tabular-nums}
+table.rb td.na{width:86px;text-align:center;cursor:pointer;font-size:13px;color:var(--muted)}
+table.rb td.na.sel{background:#f3dcd0;color:var(--warn);box-shadow:inset 0 0 0 2px var(--warn);font-weight:600}
+:root[data-theme="dark"] table.rb td.na.sel{background:#3a2419}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) table.rb td.na.sel{background:#3a2419}}
+.warnline{color:var(--warn);font-size:13px;font-weight:600}
+</style>
+</head>
+<body>
+<header>
+  <h1>Creador de rúbricas</h1>
+  <p class="sub">Didáctica II · Profesorado de Informática. Armá la rúbrica de una consigna: dimensiones o indicadores (filas), niveles (columnas) y descriptores con su puntaje (celdas). Después corregí con un clic por dimensión, obtené la nota de 1 a 10 y exportá a PDF o copiá para Word.</p>
+  <nav role="tablist">
+    <button role="tab" id="t-dis" aria-selected="true" data-s="dis">1. Diseñar</button>
+    <button role="tab" id="t-cor" aria-selected="false" data-s="cor">2. Ver y corregir</button>
+    <button role="tab" id="t-gui" aria-selected="false" data-s="gui">Guía</button>
+  </nav>
+</header>
+<main>
+<section id="dis">
+  <div class="panel">
+    <h2>Consigna que se evalúa</h2>
+    <div class="grid2">
+      <div><label for="f-tit">Título de la rúbrica</label><input id="f-tit"></div>
+      <div><label for="f-cur">Curso / espacio</label><input id="f-cur"></div>
+      <div><label for="f-top">Tópico generativo</label><input id="f-top"></div>
+      <div><label for="f-lin">Línea de abordaje</label><input id="f-lin"></div>
+    </div>
+    <div style="margin-top:10px"><label for="f-con">Consigna</label><textarea id="f-con"></textarea></div>
+  </div>
+  <div class="panel">
+    <h2>Niveles</h2>
+    <p class="hint">Expresan el avance del proceso de aprendizaje. Ordenalos de lo inicial a la concreción del objetivo: el último nivel es el logrado. Conviene empezar con tres.</p>
+    <div class="levels" id="levels"></div>
+    <div class="row" style="margin-top:10px"><button class="btn ghost small" id="add-lvl">+ Agregar nivel</button></div>
+  </div>
+  <div class="panel">
+    <h2>Dimensiones y descriptores</h2>
+    <p class="hint">Cada dimensión (indicador) es el aspecto que se observa, definido a partir de los propósitos de la consigna; se nombra sin calificarlo. En cada celda va el descriptor, con acciones observables, y su puntaje entero. El puntaje del último nivel es el peso de la dimensión, y entre todas las dimensiones deben sumar 10.</p>
+    <div class="scroll"><table class="ed" id="ed"></table></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="add-dim">+ Agregar dimensión</button>
+      <span class="hint">Puntaje máximo total: <span class="total-peso" id="tot-peso"></span> de 10</span>
+      <span class="warnline" id="w-peso"></span>
+    </div>
+  </div>
+  <div class="panel row">
+    <button class="btn ghost small" id="b-ej">Cargar ejemplo</button>
+    <button class="btn ghost small" id="b-new">Rúbrica en blanco</button>
+    <button class="btn ghost small" id="b-json">Guardar archivo de la rúbrica</button>
+    <label class="btn ghost small" for="f-load" style="margin:0;color:var(--accent)">Abrir archivo de rúbrica</label>
+    <input type="file" id="f-load" accept=".json,application/json" hidden>
+  </div>
+</section>
+
+<section id="cor" hidden>
+  <div class="sumbar">
+    <div style="flex:1;min-width:200px"><label for="f-est">Estudiante o grupo</label><input id="f-est" placeholder="Nombre y apellido"></div>
+    <div class="stat"><b id="s-pts">0 / 10</b><span>Puntos</span></div>
+    <div class="stat"><b id="s-not">–</b><span>Nota</span></div>
+    <div class="stat"><b id="s-pen">0</b><span>Sin corregir</span></div>
+    <div class="row">
+      <button class="btn" id="b-pdf">Descargar PDF</button>
+      <button class="btn ghost" id="b-word">Copiar para Word</button>
+      <button class="btn ghost" id="b-txt">Copiar devolución</button>
+      <button class="btn danger small" id="b-clear">Limpiar corrección</button>
+    </div>
+  </div>
+  <div class="panel" id="con-view"></div>
+  <p class="hint">Hacé clic en la celda que describe la producción en cada dimensión. Si la dimensión no aparece en la producción, marcá «No está» (0 puntos). La nota es la suma de los puntajes, redondeada al entero más cercano (desde 0,5 hacia arriba).</p>
+  <div class="scroll"><table class="rb" id="rb"></table></div>
+  <div class="panel" style="margin-top:12px"><label for="f-dev">Devolución general</label><textarea id="f-dev"></textarea></div>
+</section>
+
+<section id="gui" hidden class="guide">
+  <div class="panel">
+    <h2>Cómo se organiza esta rúbrica</h2>
+    <dl>
+      <dt>Dimensión o indicador (filas)</dt><dd>El aspecto que se va a observar: un recorte de lo que pide la consigna, definido a partir de sus propósitos. Se nombra de forma neutra: «Prueba del algoritmo», no «Buena prueba». Como señala López García (2014), los juicios de calidad van en los descriptores.</dd>
+      <dt>Nivel (columnas)</dt><dd>Cada etapa del avance del proceso de aprendizaje, desde lo inicial hasta la concreción del objetivo. A diferencia de una lista de cotejo, los niveles muestran gradualidad. Eduteka recomienda <i>"empezar elaborando Rúbricas con tres niveles de desempeño"</i> (López García, 2014).</dd>
+      <dt>Descriptor (celdas)</dt><dd>Describe qué se observa en cada cruce entre dimensión y nivel, con acciones observables y sin calificativos como «bueno» o «malo» (Guerrero Hernández, 2019). Cada descriptor tiene un puntaje entero.</dd>
+      <dt>Peso y nota</dt><dd>El puntaje del nivel más alto es el peso de la dimensión, y entre todas suman 10. La nota es la suma de los puntajes marcados. Si una dimensión no aparece en la producción, aporta 0. Si hay decimales, se redondea al entero más cercano, desde 0,5 hacia arriba.</dd>
+    </dl>
+    <p>Una rúbrica es un <i>"cuadro de doble entrada"</i> (Guerrero Hernández, 2019) que se entrega antes de la tarea: anticipa lo que se espera y permite que todos conozcan las mismas reglas. También sirve para revisar borradores, autoevaluarse y coevaluar.</p>
+    <p class="ref">Guerrero Hernández, J. A. (2019, 24 de noviembre). <i>Todo sobre rúbricas: qué son, cómo elaborarlas y ejemplos editables</i>. Docentes al Día. <a href="https://docentesaldia.com/2019/11/24/todo-sobre-rubricas-que-son-como-elaborarlas-y-ejemplos-editables/">docentesaldia.com</a><br>
+    López García, J. C. (2014). <i>Cómo construir rúbricas o matrices de valoración</i>. Eduteka. <a href="https://eduteka.icesi.edu.co/articulos/ver.php?id=95">eduteka.icesi.edu.co</a></p>
+  </div>
+</section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script>
+const KEY="rubricas-didactica2-v4";
+const EJEMPLO={
+ titulo:"Rúbrica: algoritmo de recomendación",curso:"Informática – Ciclo Orientado",topico:"¿Quién decide lo que vemos en internet?",linea:"Línea de abordaje 1: pensamiento computacional",
+ consigna:"Diseñá, en PSeInt o en Scratch, un algoritmo que decida qué video recomendarle a un usuario a partir de dos datos: el último tema que miró y cuántos minutos lo vio. Usá al menos una estructura de selección anidada (si… entonces… si no) y explicá en un párrafo breve qué criterio de recomendación elegiste y a quién podría dejar afuera. Podés consultar el apunte sobre estructuras de control. El algoritmo estará logrado si un compañero puede ejecutarlo con tres casos de prueba distintos y obtener la recomendación esperada.",
+ niveles:[{n:"Inicial"},{n:"En desarrollo"},{n:"Logrado"}],
+ dims:[
+  {n:"Uso de la estructura de selección",c:[{t:"Presenta una secuencia de pasos sin condiciones: la recomendación no depende de los datos.",p:1},{t:"Usa una selección simple con uno solo de los dos datos; algunos casos quedan sin respuesta.",p:2},{t:"Usa una selección anidada que combina los dos datos y da una recomendación para cada caso posible.",p:4}]},
+  {n:"Prueba del algoritmo",c:[{t:"No presenta casos de prueba, o el algoritmo no se puede ejecutar.",p:1},{t:"Presenta casos de prueba, pero alguno no da la recomendación esperada.",p:2},{t:"Presenta tres casos de prueba distintos y en todos se obtiene la recomendación esperada.",p:3}]},
+  {n:"Fundamentación del criterio",c:[{t:"No explica el criterio de recomendación.",p:1},{t:"Explica el criterio elegido, pero no señala a quién podría dejar afuera.",p:2},{t:"Explica el criterio elegido y señala qué usuarios o contenidos podría dejar afuera.",p:3}]}
+ ]};
+const VACIA={titulo:"Nueva rúbrica",curso:"",topico:"",linea:"",consigna:"",niveles:[{n:"Inicial"},{n:"En desarrollo"},{n:"Logrado"}],dims:[{n:"Dimensión 1",c:[{t:"",p:1},{t:"",p:2},{t:"",p:4}]},{n:"Dimensión 2",c:[{t:"",p:1},{t:"",p:2},{t:"",p:3}]},{n:"Dimensión 3",c:[{t:"",p:1},{t:"",p:2},{t:"",p:3}]}]};
+const clone=o=>JSON.parse(JSON.stringify(o));
+const NA=-1;
+let S,C={sel:{},com:{},est:"",dev:""};
+function load(){try{const r=JSON.parse(localStorage.getItem(KEY));if(r&&r.S&&r.S.dims){S=r.S;C=r.C||C;return}}catch(e){}S=clone(EJEMPLO)}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({S,C}))}catch(e){}}
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+function toast(t){const e=$("toast");e.textContent=t;e.classList.add("on");clearTimeout(toast.h);toast.h=setTimeout(()=>e.classList.remove("on"),2600)}
+function fixCrit(){S.dims.forEach(d=>{while(d.c.length<S.niveles.length)d.c.push({t:"",p:0});d.c.length=S.niveles.length})}
+const fmt=n=>String(Math.round(n*100)/100).replace(".",",");
+const peso=d=>Math.max(0,...d.c.map(c=>+c.p||0));
+const totMax=()=>S.dims.reduce((a,d)=>a+peso(d),0);
+
+/* ---------- Diseño ---------- */
+function renderDesign(){
+ $("f-tit").value=S.titulo;$("f-cur").value=S.curso;$("f-top").value=S.topico||"";$("f-lin").value=S.linea||"";$("f-con").value=S.consigna;
+ $("levels").innerHTML=S.niveles.map((l,i)=>`<div class="lvl"><input class="n" id="ln${i}" aria-label="Nombre del nivel ${i+1}" value="${esc(l.n)}"><button class="btn danger small" data-dl="${i}" aria-label="Quitar nivel">×</button></div>`).join("");
+ $("ed").innerHTML=`<thead><tr><th>Dimensión (indicador)</th>${S.niveles.map(l=>`<th>${esc(l.n)}</th>`).join("")}<th>Peso</th><th></th></tr></thead><tbody>`+
+ S.dims.map((d,di)=>`<tr><td class="dim"><textarea id="dn${di}" aria-label="Nombre de la dimensión" style="min-height:60px">${esc(d.n)}</textarea></td>
+   ${d.c.map((c,ci)=>`<td><textarea id="dc${di}_${ci}" aria-label="Descriptor para ${esc(S.niveles[ci].n)}" style="min-height:100px">${esc(c.t)}</textarea><div class="cellpts"><label for="dp${di}_${ci}" style="margin:0;font-weight:400">Puntaje</label><input id="dp${di}_${ci}" type="number" min="0" step="1" value="${c.p}"></div></td>`).join("")}
+   <td class="peso" id="pw${di}" style="text-align:center;font-weight:600;font-variant-numeric:tabular-nums">${fmt(peso(d))}</td>
+   <td><button class="btn danger small" data-dd="${di}" aria-label="Quitar dimensión">×</button></td></tr>`).join("")+"</tbody>";
+ totPeso();
+}
+function totPeso(){
+ const t=totMax();const el=$("tot-peso");el.textContent=fmt(t);el.classList.toggle("bad",t!==10);
+ S.dims.forEach((d,di)=>{const c=$("pw"+di);if(c)c.textContent=fmt(peso(d))});
+ const w=[];if(t!==10)w.push(t>10?`Los pesos suman ${fmt(t)}: bajá algún puntaje del nivel más alto.`:`Los pesos suman ${fmt(t)}: faltan ${fmt(10-t)} para llegar a 10.`);
+ if(S.dims.some(d=>d.c.some(c=>+c.p!==Math.round(+c.p))))w.push("Hay puntajes con decimales.");
+ if(S.dims.some(d=>d.c.some((c,i)=>i>0&&+c.p<+d.c[i-1].p)))w.push("Algún puntaje baja de un nivel al siguiente.");
+ $("w-peso").textContent=w.join(" ");
+}
+document.addEventListener("input",ev=>{
+ const id=ev.target.id,v=ev.target.value;if(!id)return;let m;
+ if(id==="f-tit")S.titulo=v;else if(id==="f-cur")S.curso=v;else if(id==="f-top")S.topico=v;else if(id==="f-lin")S.linea=v;else if(id==="f-con")S.consigna=v;
+ else if(m=id.match(/^ln(\d+)$/))S.niveles[m[1]].n=v;
+ else if(m=id.match(/^dn(\d+)$/))S.dims[m[1]].n=v;
+ else if(m=id.match(/^dc(\d+)_(\d+)$/))S.dims[m[1]].c[m[2]].t=v;
+ else if(m=id.match(/^dp(\d+)_(\d+)$/)){S.dims[m[1]].c[m[2]].p=+v||0;totPeso()}
+ else if(m=id.match(/^cm(\d+)$/))C.com[m[1]]=v;
+ else if(id==="f-est")C.est=v;else if(id==="f-dev")C.dev=v;
+ else return;
+ save();
+});
+document.addEventListener("change",ev=>{if(/^ln\d+$/.test(ev.target.id))renderDesign()});
+document.addEventListener("click",ev=>{
+ const t=ev.target.closest("[data-dl],[data-dd],td.cell,td.na");if(!t)return;
+ if(t.dataset.dl!==undefined){if(S.niveles.length<=2){toast("Una rúbrica necesita al menos dos niveles");return}S.niveles.splice(+t.dataset.dl,1);fixCrit();C.sel={};renderDesign()}
+ else if(t.dataset.dd!==undefined){S.dims.splice(+t.dataset.dd,1);C.sel={};C.com={};renderDesign()}
+ else{const k=t.dataset.k,l=+t.dataset.l;if(C.sel[k]===l)delete C.sel[k];else C.sel[k]=l;renderRubric()}
+ save();
+});
+$("add-lvl").onclick=()=>{S.niveles.push({n:"Nuevo nivel"});S.dims.forEach(d=>d.c.push({t:"",p:peso(d)}));renderDesign();save()};
+$("add-dim").onclick=()=>{S.dims.push({n:"Nueva dimensión",c:S.niveles.map((_,i)=>({t:"",p:i+1}))});renderDesign();save()};
+$("b-ej").onclick=()=>{S=clone(EJEMPLO);C={sel:{},com:{},est:"",dev:""};renderDesign();save();toast("Se cargó el ejemplo integrado")};
+$("b-new").onclick=()=>{S=clone(VACIA);C={sel:{},com:{},est:"",dev:""};renderDesign();save();toast("Rúbrica en blanco lista")};
+
+/* ---------- Cálculo ---------- */
+function calc(){
+ let pts=0,pend=0;
+ S.dims.forEach((d,di)=>{const s=C.sel[di];if(s===undefined)pend++;else if(s!==NA&&d.c[s])pts+=+d.c[s].p||0});
+ const nota=Math.min(10,Math.max(1,Math.floor(pts+0.5)));
+ return{pts,max:totMax(),nota,pend,done:S.dims.length-pend};
+}
+
+/* ---------- Corrección ---------- */
+function renderRubric(){
+ $("f-est").value=C.est||"";$("f-dev").value=C.dev||"";
+ $("con-view").innerHTML=`<h2>${esc(S.titulo)}</h2><p class="hint">${[S.curso,S.topico?"Tópico: "+S.topico:"",S.linea].filter(Boolean).map(esc).join(" · ")}</p>${S.consigna?`<p style="max-width:90ch"><b>Consigna:</b> ${esc(S.consigna)}</p>`:""}`;
+ let h=`<thead><tr><th>Dimensión</th><th>No está</th>${S.niveles.map(l=>`<th>${esc(l.n)}</th>`).join("")}</tr></thead><tbody>`;
+ S.dims.forEach((d,di)=>{
+  h+=`<tr><td class="dimc">${esc(d.n)}<small>Peso: ${fmt(peso(d))}</small><input class="com" id="cm${di}" placeholder="Comentario" value="${esc(C.com[di]||"")}" aria-label="Comentario sobre ${esc(d.n)}"></td>`;
+  h+=`<td class="na${C.sel[di]===NA?" sel":""}" data-k="${di}" data-l="${NA}" tabindex="0" role="button" aria-pressed="${C.sel[di]===NA}" aria-label="No está: 0 puntos">—<span class="pts">0 pts</span></td>`;
+  h+=d.c.map((c,ci)=>`<td class="cell${C.sel[di]===ci?" sel":""}" data-k="${di}" data-l="${ci}" tabindex="0" role="button" aria-pressed="${C.sel[di]===ci}">${esc(c.t)||"<span class='hint'>(sin descriptor)</span>"}<span class="pts">${fmt(c.p)} ${+c.p===1?"pt":"pts"}</span></td>`).join("")+"</tr>";});
+ $("rb").innerHTML=h+"</tbody>";
+ const r=calc();$("s-pts").textContent=`${fmt(r.pts)} / ${fmt(r.max)}`;$("s-not").textContent=r.done?String(r.nota):"–";$("s-pen").textContent=r.pend;
+}
+$("rb").addEventListener("keydown",ev=>{if((ev.key==="Enter"||ev.key===" ")&&ev.target.matches("td.cell,td.na")){ev.preventDefault();ev.target.click()}});
+$("b-clear").onclick=()=>{C={sel:{},com:{},est:"",dev:""};renderRubric();save();toast("Corrección limpia")};
+
+/* ---------- Exportar ---------- */
+const F="font-family:Calibri,Arial;font-size:11pt";
+const nivelDe=(d,s)=>s===undefined?"sin corregir":s===NA?"No está (0)":`${S.niveles[s].n} (${fmt(d.c[s].p)})`;
+function wordHTML(){
+ const r=calc(),b='border:1px solid #777;padding:6px;vertical-align:top;font-family:Calibri,Arial;font-size:10pt;';
+ let h=`<h2 style="font-family:Calibri,Arial">${esc(S.titulo)}</h2><p style="${F}">${[S.curso,S.topico?"Tópico: "+S.topico:"",S.linea].filter(Boolean).map(esc).join(" · ")}</p>`;
+ if(S.consigna)h+=`<p style="${F}"><b>Consigna:</b> ${esc(S.consigna)}</p>`;
+ if(C.est)h+=`<p style="${F}"><b>Estudiante:</b> ${esc(C.est)}</p>`;
+ h+=`<table style="border-collapse:collapse;width:100%"><tr><th style="${b}background:#cccccc">Dimensión</th>${S.niveles.map(l=>`<th style="${b}background:#cccccc">${esc(l.n)}</th>`).join("")}</tr>`;
+ S.dims.forEach((d,di)=>{h+=`<tr><td style="${b}"><b>${esc(d.n)}</b> (máx. ${fmt(peso(d))})${C.sel[di]===NA?`<br><span style="color:#a14a1b">No está: 0</span>`:""}${C.com[di]?`<br><i>${esc(C.com[di])}</i>`:""}</td>`+d.c.map((c,ci)=>`<td style="${b}${C.sel[di]===ci?"background:#c9e8d4;font-weight:bold":""}">${esc(c.t)} (${fmt(c.p)})</td>`).join("")+"</tr>"});
+ h+="</table>";
+ if(r.done)h+=`<p style="${F}"><b>Puntos:</b> ${fmt(r.pts)} de ${fmt(r.max)} · <b>Nota:</b> ${r.nota}</p>`;
+ if(C.dev)h+=`<p style="${F}"><b>Devolución:</b> ${esc(C.dev)}</p>`;
+ return h;
+}
+function devText(){
+ const r=calc();let t=`${S.titulo}\n${C.est?"Estudiante: "+C.est+"\n":""}\n`;
+ S.dims.forEach((d,di)=>{const s=C.sel[di];t+=`- ${d.n}: ${nivelDe(d,s)}${s!==undefined&&s!==NA?". "+d.c[s].t:""}${C.com[di]?" Comentario: "+C.com[di]:""}\n`});
+ t+=`\nPuntos: ${fmt(r.pts)} de ${fmt(r.max)}. Nota: ${r.done?r.nota:"–"}.\n`;
+ if(C.dev)t+=`\nDevolución: ${C.dev}\n`;return t;
+}
+$("b-word").onclick=async()=>{const html=wordHTML();
+ try{if(window.ClipboardItem){await navigator.clipboard.write([new ClipboardItem({"text/html":new Blob([html],{type:"text/html"}),"text/plain":new Blob([devText()],{type:"text/plain"})})]);toast("Copiada. Pegala en Word o Google Docs")}else throw 0}
+ catch(e){try{await navigator.clipboard.writeText(devText());toast("Se copió como texto: este navegador no permite copiar la tabla")}catch(e2){toast("El navegador no permitió copiar")}}};
+$("b-txt").onclick=async()=>{try{await navigator.clipboard.writeText(devText());toast("Devolución copiada")}catch(e){toast("El navegador no permitió copiar")}};
+
+let dl=null;(async()=>{try{if(window.claude&&claude.use)dl=await claude.use("downloads")}catch(e){dl=null}})();
+async function saveFile(name,data){
+ if(dl){try{await dl.save({filename:name,data});return true}catch(e){if(e&&e.code==="declined")return false}}
+ try{const u=URL.createObjectURL(data instanceof Blob?data:new Blob([data]));const a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);return true}catch(e){toast("No se pudo descargar en esta vista");return false}
+}
+function safeName(s){return (s||"rubrica").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"_").slice(0,60)||"rubrica"}
+$("b-pdf").onclick=async()=>{
+ if(!window.jspdf){toast("No cargó el generador de PDF. Usá «Copiar para Word»");return}
+ const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:"landscape",unit:"pt",format:"a4"}),r=calc();
+ let y=40;doc.setFont("helvetica","bold");doc.setFontSize(15);doc.text(S.titulo||"Rúbrica",40,y);y+=18;
+ doc.setFont("helvetica","normal");doc.setFontSize(10);
+ const line=t=>{const ls=doc.splitTextToSize(t,760);doc.text(ls,40,y);y+=ls.length*13};
+ const meta=[S.curso,S.topico?"Tópico: "+S.topico:"",S.linea].filter(Boolean).join(" · ");if(meta)line(meta);
+ if(S.consigna)line("Consigna: "+S.consigna);if(C.est)line("Estudiante: "+C.est);
+ const body=S.dims.map((d,di)=>[{content:`${d.n} (máx. ${fmt(peso(d))})`+(C.sel[di]===NA?"\nNo está: 0":"")+(C.com[di]?"\nComentario: "+C.com[di]:""),styles:{fontStyle:"bold"}},...d.c.map((c,ci)=>({content:`${c.t} (${fmt(c.p)})`,styles:C.sel[di]===ci?{fillColor:[201,232,212],fontStyle:"bold"}:{}}))]);
+ doc.autoTable({startY:y+6,head:[["Dimensión",...S.niveles.map(l=>l.n)]],body,theme:"grid",
+  styles:{fontSize:9,cellPadding:5,valign:"top",lineColor:[150,150,150]},headStyles:{fillColor:[204,204,204],textColor:20},columnStyles:{0:{cellWidth:160}},margin:{left:40,right:40}});
+ y=doc.lastAutoTable.finalY+20;if(y>540){doc.addPage();y=40}
+ if(r.done){doc.setFont("helvetica","bold");line(`Puntos: ${fmt(r.pts)} de ${fmt(r.max)}   ·   Nota: ${r.nota}`);doc.setFont("helvetica","normal")}
+ if(C.dev)line("Devolución: "+C.dev);
+ const ok=await saveFile(safeName((S.titulo||"rubrica")+(C.est?"_"+C.est:""))+".pdf",doc.output("blob"));if(ok)toast("PDF listo");
+};
+$("b-json").onclick=async()=>{const ok=await saveFile(safeName(S.titulo)+".json",JSON.stringify({rubrica:S},null,2));if(ok)toast("Archivo guardado. Se abre con «Abrir archivo de rúbrica»")};
+$("f-load").onchange=ev=>{const f=ev.target.files[0];if(!f)return;f.text().then(t=>{try{const o=JSON.parse(t),R=o.rubrica||o;if(!R.niveles||!R.dims)throw 0;S=R;fixCrit();C={sel:{},com:{},est:"",dev:""};renderDesign();save();toast("Rúbrica abierta")}catch(e){toast("El archivo no es una rúbrica de esta herramienta")}});ev.target.value=""};
+
+/* ---------- Pestañas ---------- */
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+ document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected",x===b));
+ ["dis","cor","gui"].forEach(s=>$(s).hidden=s!==b.dataset.s);if(b.dataset.s==="cor")renderRubric();});
+load();fixCrit();renderDesign();
+</script>
+</body>
+</html>
